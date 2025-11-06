@@ -1,69 +1,54 @@
+/* === Layout === */
+html,
 body {
+    margin: 0;
+        height: 100%;
     font-family: system-ui, sans-serif;
-    background: #f4f4f4;
+    background: #1e1e1e;
+        color: #eee;
+}
+
+.app-container {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+        "sidebar main"
+        "footer footer";
+    height: 100vh;
+}
+
+.sidebar {
+    grid-area: sidebar;
+    background: #2c2c2c;
+    border-right: 1px solid #444;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.main-area {
+    grid-area: main;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 2em;
-    gap: 1em;
+    justify-content: flex-start;
+        overflow: hidden;
+        position: relative;
 }
 
-canvas {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
-    max-width: 90vw;
-}
-
-canvas.pixelated {
-    image-rendering: pixelated;
-}
-
-.controls {
+.palette-footer {
+    grid-area: footer;
+    background: #2b2b2b;
+    border-top: 1px solid #444;
+    padding: 0.5rem 1rem;
+    position: sticky;
+    bottom: 0;
     display: flex;
-    flex-wrap: wrap;
-    gap: 1em;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    z-index: 10;
 }
 
-button,
-select,
-input {
-    padding: 0.5em 1.2em;
-    border-radius: 6px;
-    font-size: 1em;
-}
-
-button {
-    border: none;
-    background: #007bff;
-    color: white;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-button:disabled {
-    background: #aaa;
-    cursor: default;
-}
-
-fieldset {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 1em;
-    background: white;
-    width: fit-content;
-}
-
-legend {
-    font-weight: 600;
-}
-
-.info {
-    color: #333;
-    font-size: 0.9em;
-}
 
 .palette-controls {
     display: grid;
@@ -74,59 +59,102 @@ legend {
     box-sizing: border-box;
 }
 
-@media (max-width: 1130px) {
+@media (max-width: 850px) {
     .palette-controls {
         grid-template-columns: repeat(16, 1fr);
     }
 }
 
-@media (max-width: 590px) {
+@media (max-width: 432px) {
     .palette-controls {
         grid-template-columns: repeat(8, 1fr);
     }
 }
 
-.color-btn {
-    width: 24px;
-    height: 24px;
-    border: 2px solid #666;
-    border-radius: 4px;
-    cursor: pointer;
-    box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
-    transition: transform 0.1s, opacity 0.2s, border-color 0.2s;
+/* === Sidebar styling === */
+.sidebar h1 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
 }
 
-.color-btn.enabled {
-    opacity: 1;
-    border-color: #222;
+.settings-section {
+    margin-bottom: 1rem;
 }
 
-.color-btn.disabled {
-    opacity: 0.3;
-    border-color: #aaa;
+.settings-section h2 {
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+    color: #ccc;
 }
 
-.canvas-wrapper {
-    position: relative;
+.settings-section input,
+.settings-section select,
+.settings-section button {
     width: 100%;
-    aspect-ratio: 100 / 60;
-    /* height = 60% of width */
+    margin-bottom: 0.4rem;
+    padding: 0.3rem;
+    border: none;
+    border-radius: 6px;
+    background: #3b3b3b;
+    color: #eee;
+}
+
+.settings-section button {
+    background: #4c4c4c;
+    cursor: pointer;
+}
+
+.settings-section button:hover {
+    background: #5c5c5c;
+}
+
+/* === Canvas area === */
+.canvas-wrapper {
+    flex: 1;
+        width: 100%;
+    position: relative;
     overflow: hidden;
-    border: 2px solid #ccc;
-    border-radius: 12px;
-    background: #222;
-    touch-action: none;
-    /* disable browser gestures */
-    cursor: grab;
+    background: #000;
 }
 
-.canvas-wrapper:active {
-    cursor: grabbing;
-}
-
-.canvas-wrapper canvas {
+canvas {
     position: absolute;
     top: 0;
     left: 0;
-    transform-origin: 0 0;
+    transform-origin: top left;
+        transition: transform 0.1s ease-out;
+    }
+    
+    canvas.pixelated {
+        image-rendering: pixelated;
+    }
+    
+    .info {
+        font-size: 0.9rem;
+        color: #aaa;
+        margin-top: 0.5rem;
+    }
+    
+    /* === Palette footer === */
+    .palette-footer legend {
+        font-size: 0.9rem;
+        color: #ccc;
+        margin-bottom: 0.4rem;
+    }
+    
+    .color-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.1s ease, opacity 0.2s ease;
+    }
+    
+    .color-btn.enabled:hover {
+        transform: scale(1.2);
+    }
+    
+    .color-btn.disabled {
+        opacity: 0.3;
 }
