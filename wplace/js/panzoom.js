@@ -7,25 +7,25 @@ let isDragging = false;
 let lastX = 0, lastY = 0;
 
 function updateCanvasTransform() {
-    canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
-    beforeCanvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
+    const canvases = wrapper.querySelectorAll('canvas');
+    const shouldPixelate = zoom > 1.01;
 
-    // Apply pixelated rendering only if zoomed in
-    if (zoom > 1.01) {
-        canvas.classList.add('pixelated');
-        beforeCanvas.classList.add('pixelated');
-    } else {
-        canvas.classList.remove('pixelated');
-        beforeCanvas.classList.remove('pixelated');
-    }
+    canvases.forEach(c => {
+        c.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
+        c.classList.toggle('pixelated', shouldPixelate);
+    });
 }
-
 
 // Center canvas in wrapper
 function centerCanvas() {
+    const canvases = wrapper.querySelectorAll('canvas');
+    if (!canvases.length) return;
+
     const rect = wrapper.getBoundingClientRect();
-    const w = canvas.width * zoom;
-    const h = canvas.height * zoom;
+    const mainCanvas = canvases[0];
+    const w = mainCanvas.width * zoom;
+    const h = mainCanvas.height * zoom;
+
     offsetX = (rect.width - w) / 2;
     offsetY = (rect.height - h) / 2;
     updateCanvasTransform();
