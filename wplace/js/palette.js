@@ -13,13 +13,7 @@ function loadImageFromURL(url, triedProxy = false) {
         resetTransform();
     };
     img.onerror = () => {
-        if (!triedProxy) {
-            console.warn("⚠️ Image failed, retrying via CORS proxy...");
-            const proxied = "https://corsproxy.io/?" + encodeURIComponent(url);
-            loadImageFromURL(proxied, true);
-        } else {
-            alert("⚠️ Could not load image (even via proxy). The source server may block CORS.");
-        }
+        alert("⚠️ Could not load image. The source server may block CORS.");
     };
     img.src = url;
 }
