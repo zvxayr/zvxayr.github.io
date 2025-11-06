@@ -17,11 +17,10 @@
                 <input type="file" id="fileInput" accept="image/*">
                 <input type="url" id="urlInput" placeholder="Image URL...">
                 <button id="loadUrlBtn">Load</button>
-                
+
                 <label>Scale:
                     <input type="number" id="scaleInput" value="1.00" step="0.05" min="0.05">
-                    </label>
-
+                </label>
                 <label>Interpolation:
                     <select id="interpolation">
                         <option value="nearest">Nearest</option>
@@ -29,8 +28,12 @@
                         <option value="bicubic">Bicubic</option>
                     </select>
                 </label>
+                <label>
+                    Transparency Threshold
+                    <input type="number" id="transparencyInput" value="178" step="1" min="0" max="255">
+                </label>
             </section>
-            
+
             <section class="settings-section">
                 <h2>Dither Settings</h2>
 
@@ -84,15 +87,15 @@
                             Seed
                             <input type="number" id="seedInput" value="42" step="1" min="0">
                         </label>
-                        </div>
-                        </fieldset>
+                    </div>
+                </fieldset>
             </section>
 
             <section class="settings-section">
                 <button id="downloadBtn" disabled>Download</button>
                 <button id="shareBtn">Share</button>
             </section>
-            </aside>
+        </aside>
 
         <main class="main-area">
             <div class="info" id="infoText">No image loaded.</div>
@@ -101,12 +104,12 @@
                 <canvas id="beforeCanvas"></canvas>
                 <canvas id="canvas"></canvas>
             </div>
-            </main>
-            
-            <footer class="palette-footer">
-                <legend>Color Palette</legend>
-                <div id="paletteControls" class="palette-controls"></div>
-            </footer>
+        </main>
+
+        <footer class="palette-footer">
+            <legend>Color Palette</legend>
+            <div id="paletteControls" class="palette-controls"></div>
+        </footer>
     </div>
 
     <script src="js/query.js"></script>
@@ -133,6 +136,7 @@
         const greyPenaltyInput = document.getElementById('greyPenaltyInput');
         const edgeFalloffInput = document.getElementById('edgeFalloffInput');
         const errorClipInput = document.getElementById('errorClipInput');
+        const transparencyInput = document.getElementById('transparencyInput');
 
         const PALETTE = [
             [0, 0, 0, "Black"], [60, 60, 60, "Dark Gray"], [120, 120, 120, "Gray"],
@@ -159,14 +163,14 @@
         ];
 
         let enabledColors = new Array(PALETTE.length).fill(true);
-            // Apply query-based palette control
-            if (enabledIndices !== null) {
-                enabledColors = enabledColors.map((_, i) => enabledIndices.includes(i));
-            } else if (disabledIndices.length > 0) {
-                disabledIndices.forEach(i => {
-                    if (i >= 0 && i < enabledColors.length) enabledColors[i] = false;
-                });
-            }
+        // Apply query-based palette control
+        if (enabledIndices !== null) {
+            enabledColors = enabledColors.map((_, i) => enabledIndices.includes(i));
+        } else if (disabledIndices.length > 0) {
+            disabledIndices.forEach(i => {
+                if (i >= 0 && i < enabledColors.length) enabledColors[i] = false;
+            });
+        }
         let lastImage = null;
 
         // Generate palette buttons
@@ -197,17 +201,17 @@
             img.src = URL.createObjectURL(file);
         });
 
-            // ---- Auto-load image if src query parameter provided ----
-            if (window.initialImageSrc) {
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-                img.onload = () => {
-                    lastImage = img;
-                    processImage();
-                    resetTransform();
-                };
-                img.src = window.initialImageSrc;
-            }
+        // ---- Auto-load image if src query parameter provided ----
+        if (window.initialImageSrc) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+                lastImage = img;
+                processImage();
+                resetTransform();
+            };
+            img.src = window.initialImageSrc;
+        }
 
         let processTimeout;
         function queueProcess() {
@@ -217,7 +221,7 @@
             }, 100);
         }
 
-        [interpolation, ratioInput, jitterInput, gammaInput, balanceInput, seedInput, greyPenaltyInput, edgeFalloffInput, errorClipInput]
+        [interpolation, ratioInput, jitterInput, gammaInput, balanceInput, seedInput, greyPenaltyInput, edgeFalloffInput, errorClipInput, transparencyInput]
             .forEach(el => el.addEventListener('input', queueProcess));
 
         [scaleInput].forEach(el => el.addEventListener('input', () => {
@@ -236,6 +240,7 @@
             const greyPenalty = parseFloat(greyPenaltyInput.value);
             const edgeFalloff = parseFloat(edgeFalloffInput.value);
             const errorClip = parseFloat(errorClipInput.value);
+            const transparencyThreshold = parseInt(transparencyInput.value);
 
             const activePalette = PALETTE.filter((_, i) => enabledColors[i]).map(([r, g, b]) => [r, g, b]);
 
@@ -276,7 +281,7 @@
                     data[i] = r;
                     data[i + 1] = g;
                     data[i + 2] = b;
-                    data[i + 3] = data[i + 3] < 96 ? 0 : 255;
+                    data[i + 3] = data[i + 3] < transparencyThreshold ? 0 : 255;
                 }
             }
 
