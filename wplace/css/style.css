@@ -1,0 +1,132 @@
+body {
+    font-family: system-ui, sans-serif;
+    background: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2em;
+    gap: 1em;
+}
+
+canvas {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    max-width: 90vw;
+}
+
+canvas.pixelated {
+    image-rendering: pixelated;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1em;
+    align-items: center;
+    justify-content: center;
+}
+
+button,
+select,
+input {
+    padding: 0.5em 1.2em;
+    border-radius: 6px;
+    font-size: 1em;
+}
+
+button {
+    border: none;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+button:disabled {
+    background: #aaa;
+    cursor: default;
+}
+
+fieldset {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1em;
+    background: white;
+    width: fit-content;
+}
+
+legend {
+    font-weight: 600;
+}
+
+.info {
+    color: #333;
+    font-size: 0.9em;
+}
+
+.palette-controls {
+    display: grid;
+    grid-template-columns: repeat(32, 1fr);
+    gap: 6px;
+    justify-content: center;
+    padding: 0.5em;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1130px) {
+    .palette-controls {
+        grid-template-columns: repeat(16, 1fr);
+    }
+}
+
+@media (max-width: 590px) {
+    .palette-controls {
+        grid-template-columns: repeat(8, 1fr);
+    }
+}
+
+.color-btn {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #666;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s, opacity 0.2s, border-color 0.2s;
+}
+
+.color-btn.enabled {
+    opacity: 1;
+    border-color: #222;
+}
+
+.color-btn.disabled {
+    opacity: 0.3;
+    border-color: #aaa;
+}
+
+.canvas-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 100 / 60;
+    /* height = 60% of width */
+    overflow: hidden;
+    border: 2px solid #ccc;
+    border-radius: 12px;
+    background: #222;
+    touch-action: none;
+    /* disable browser gestures */
+    cursor: grab;
+}
+
+.canvas-wrapper:active {
+    cursor: grabbing;
+}
+
+.canvas-wrapper canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+}
