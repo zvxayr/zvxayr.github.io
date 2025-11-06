@@ -19,12 +19,13 @@ function loadImageFromURL(url) {
 }
 
 loadUrlBtn.addEventListener('click', () => {
-    const url = urlInput.value.trim();
-    if (url) loadImageFromURL(url);
+    const proxiedUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(urlInput.value.trim());
+    if (url) loadImageFromURL(proxiedUrl);
 });
 
 // Auto-load if src=... query parameter present
 if (window.initialImageSrc) {
     urlInput.value = window.initialImageSrc;
-    loadImageFromURL(window.initialImageSrc);
+    const proxiedUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(urlInput.value.trim());
+    loadImageFromURL(proxiedUrl);
 }
