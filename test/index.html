@@ -35,14 +35,17 @@
             </section>
 
             <section class="settings-section">
-                <h2 title="Used for touch-ups. Click Edit Mask to 'paint' regions you want fixed. Subsequent edits will leave those pixels untouched. Click the button again to leave mask edit mode. Panning and zooming are disabled in this mode. (WIP)">Freeze Mask</h2>
+                <h2
+                    title="Used for touch-ups. Click Edit Mask to 'paint' regions you want fixed. Subsequent edits will leave those pixels untouched. Click the button again to leave mask edit mode. Panning and zooming are disabled in this mode. (WIP)">
+                    Freeze Mask</h2>
 
                 <label>
                     Brush Size
                     <input type="number" id="brushSize" value="6" step="1" min="1" max="50">
                 </label>
 
-                <button id="toggleMaskModeBtn" title="Add mode to set frozen pixels. Subtract mode to unfreeze pixels.">Mode: Add</button>
+                <button id="toggleMaskModeBtn"
+                    title="Add mode to set frozen pixels. Subtract mode to unfreeze pixels.">Mode: Add</button>
                 <button id="editMaskBtn">Edit Mask</button>
                 <button id="clearMaskBtn">Clear Mask</button>
             </section>
@@ -206,7 +209,7 @@
                 });
                 paletteControls.appendChild(btn);
             });
-    
+
             fileInput.addEventListener('change', e => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -219,7 +222,7 @@
                 };
                 img.src = URL.createObjectURL(file);
             });
-    
+
             // ---- Auto-load image if src query parameter provided ----
             if (window.initialImageSrc) {
                 const img = new Image();
@@ -231,7 +234,7 @@
                 };
                 img.src = window.initialImageSrc;
             }
-    
+
             let processTimeout;
             function queueProcess() {
                 if (processTimeout) clearTimeout(processTimeout);
@@ -239,28 +242,28 @@
                     if (lastImage) processImage();
                 }, 100);
             }
-    
+
             [interpolation, ratioInput, jitterInput, gammaInput, balanceInput, seedInput, greyPenaltyInput, edgeFalloffInput, errorClipInput, transparencyInput]
                 .forEach(el => el.addEventListener('input', queueProcess));
-    
+
             scaleInput.addEventListener('input', () => {
                 resizeCanvasesToScale();
                 processImage();
             });
-    
+
             function resizeCanvasesToScale() {
                 if (!lastImage) return;
-    
+
                 const scale = Math.max(parseFloat(scaleInput.value) || 1, 0.1);
                 const w = Math.round(lastImage.width * scale);
                 const h = Math.round(lastImage.height * scale);
-    
+
                 // Resize only image display canvases — leave mask unless necessary
                 canvas.width = w;
                 canvas.height = h;
                 beforeCanvas.width = w;
                 beforeCanvas.height = h;
-    
+
                 // Ensure mask exists and matches new size
                 const maskNeedsResize = !freezeMask || freezeMask.length !== w * h;
                 if (maskNeedsResize) {
@@ -270,11 +273,11 @@
                     maskCanvas.height = h;
                     maskCtx.clearRect(0, 0, w, h);
                 }
-    
+
                 // Keep other visuals aligned
                 resetTransform();
             }
-    
+
             function processImage() {
                 const scale = Math.max(parseFloat(scaleInput.value) || 1, 0.1);
                 const interp = interpolation.value;
@@ -287,64 +290,75 @@
                 const edgeFalloff = parseFloat(edgeFalloffInput.value);
                 const errorClip = parseFloat(errorClipInput.value);
                 const transparencyThreshold = parseInt(transparencyInput.value);
-    
-                const activePalette = PALETTE.filter((_, i) => enabledColors[i]).map(([r, g, b]) => [r, g, b]);
-    
+
+                const activePalette = PALETTE
+                    .filter((_, i) => enabledColors[i])
+                    .flatMap(([r, g, b]) => [r, g, b]); // flatten palette
+
                 const w = canvas.width;
                 const h = canvas.height;
-    
+
                 ctx.imageSmoothingEnabled = interp !== 'nearest';
-                ctx.imageSmoothingQuality = interp === 'bicubic' ? 'high' : interp === 'bilinear' ? 'medium' : 'low';
+                ctx.imageSmoothingQuality =
+                    interp === 'bicubic' ? 'high' :
+                        interp === 'bilinear' ? 'medium' : 'low';
                 beforeCanvas.getContext('2d').drawImage(lastImage, 0, 0, w, h);
-    
+
                 ctx.clearRect(0, 0, w, h);
                 ctx.drawImage(lastImage, 0, 0, w, h);
-    
+
                 const imgData = ctx.getImageData(0, 0, w, h);
-                const data = imgData.data;
-    
-                const pixels = [];
-                for (let y = 0; y < h; y++) {
-                    const row = [];
-                    for (let x = 0; x < w; x++) {
-                        const i = (y * w + x) * 4;
-                        row.push([data[i], data[i + 1], data[i + 2], data[i + 3]]);
-                    }
-                    pixels.push(row);
+                const data = imgData.data; // Uint8ClampedArray
+
+                // --- Prepare flat buffers for WASM ---
+                const freezeMaskBuf = freezeMask ?? new Uint8Array(w * h);
+                const prevDitheredBuf = lastDithered ? lastDithered : null;
+
+                // Convert the palette
+                const paletteBuf = new Uint8Array(activePalette);
+
+                // --- Call WASM ---
+                const result = floyd_steinberg_dither_wasm(
+                    new Uint8Array(data),
+                    prevDitheredBuf,
+                    paletteBuf,
+                    w, h,
+                    freezeMaskBuf,
+                    ratio, errorClip, jitter, balance, gamma, seed,
+                    greyPenalty, edgeFalloff
+                );
+
+                // The Rust function returns Uint8Array (RGBA flat)
+                const output = new Uint8ClampedArray(result);
+                lastDithered = output; // store for possible reuse
+
+                // Write back to canvas
+                const outData = ctx.createImageData(w, h);
+                for (let i = 0; i < output.length; i += 4) {
+                    outData.data[i] = output[i];
+                    outData.data[i + 1] = output[i + 1];
+                    outData.data[i + 2] = output[i + 2];
+                    outData.data[i + 3] =
+                        data[i + 3] < transparencyThreshold ? 0 : 255;
                 }
-    
-                const dithered = floyd_steinberg_dither_wasm(pixels, lastDithered, activePalette, freezeMask, ratio, errorClip, jitter, balance, gamma, seed, greyPenalty, edgeFalloff);
-                lastDithered = dithered;
-    
-                for (let y = 0; y < h; y++) {
-                    for (let x = 0; x < w; x++) {
-                        const [r, g, b] = dithered[y][x];
-                        const i = (y * w + x) * 4;
-                        data[i] = r;
-                        data[i + 1] = g;
-                        data[i + 2] = b;
-                        data[i + 3] = data[i + 3] < transparencyThreshold ? 0 : 255;
-                    }
-                }
-    
-                ctx.putImageData(imgData, 0, 0);
+
+                ctx.putImageData(outData, 0, 0);
                 downloadBtn.disabled = false;
                 infoText.textContent =
                     `Original: ${lastImage.width}×${lastImage.height} → Dithered: ${w}×${h} (${interp}), ` +
                     `ratio=${ratio}, jitter=${jitter}, gamma=${gamma}, balance=${balance}, seed=${seed}, active colors=${activePalette.length}`;
-    
-                // ---- Sync compare slider (split view: original left, dithered right) ----
+
+                // ---- Sync compare slider ----
                 function updateCompareClip() {
                     const value = compareSlider.value * 100;
-                    // Show left part of original, right part of dithered
                     beforeCanvas.style.clipPath = `inset(0 0 0 ${value}%)`;
                     canvas.style.clipPath = `inset(0 ${100 - value}% 0 0)`;
                 }
-    
-                updateCompareClip(); // initialize
+                updateCompareClip();
                 compareSlider.addEventListener('input', updateCompareClip);
             }
-    
+
+
             downloadBtn.addEventListener('click', () => {
                 const link = document.createElement('a');
                 link.download = 'dithered.png';
