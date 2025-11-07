@@ -75,7 +75,8 @@ function floydSteinbergDither(originalImg, prevDithered, palette,
             let newPixel;
 
             // --- Frozen pixel: use previous dithered color but still diffuse error ---
-            if (freezeMask && freezeMask[y * w + x] && prevDithered && prevDithered[y] && prevDithered[y][x]) {
+            const isFrozen = freezeMask && freezeMask[y * w + x] && prevDithered && prevDithered[y] && prevDithered[y][x];
+            if (isFrozen) {
                 newPixel = prevDithered[y][x].slice(0, 3);
             } else {
                 // Add noise for dithering
@@ -122,7 +123,7 @@ function floydSteinbergDither(originalImg, prevDithered, palette,
             const edgeWeight = Math.exp(-gradSq * edgeFalloff);
 
             // Scale the diffusion by both alpha and edge smoothness
-            const aRatio = ratio * alpha * edgeWeight;
+            const aRatio = ratio * alpha * edgeWeight * (isFrozen ? 0.5 : 1);
 
             // Diffuse quantization error
             if (x + 1 < w)

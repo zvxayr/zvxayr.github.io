@@ -1,10 +1,11 @@
 // ======== Canvas Tool System ========
 const wrapper = document.getElementById('canvasWrapper');
+const brushSizeInput = document.getElementById('brushSize');
 const maskCanvas = document.getElementById('maskCanvas');
 const maskCtx = maskCanvas.getContext('2d');
 
 let freezeMask = null;
-let brushSize = 6;
+let paintMode = 'add'; // 'add' or 'subtract'
 
 // --- Pan & Zoom state ---
 let zoom = 1;
@@ -34,29 +35,58 @@ tools.maskEdit = {
     onWheel() { /* ignore zoom while editing */ }
 };
 
+const toggleMaskModeBtn = document.getElementById('toggleMaskModeBtn');
+let brushSize = parseFloat(brushSizeInput.value);
+
+// --- Brush Size Control ---
+brushSizeInput.addEventListener('input', e => {
+    brushSize = parseInt(e.target.value);
+});
+
+// --- Toggle Add/Subtract ---
+toggleMaskModeBtn.addEventListener('click', () => {
+    paintMode = paintMode === 'add' ? 'subtract' : 'add';
+    toggleMaskModeBtn.textContent = `Mode: ${paintMode === 'add' ? 'Add' : 'Subtract'}`;
+});
+
 // Paint helper
 function paintAt(x, y) {
     const w = maskCanvas.width, h = maskCanvas.height;
     const imgData = maskCtx.getImageData(0, 0, w, h);
     const data = imgData.data;
     const r = brushSize;
+    const addMode = paintMode === 'add';
+
     for (let j = -r; j <= r; j++) {
         for (let i = -r; i <= r; i++) {
             const px = Math.floor(x + i);
             const py = Math.floor(y + j);
             if (px < 0 || px >= w || py < 0 || py >= h) continue;
             if (i * i + j * j > r * r) continue;
+
             const idx = py * w + px;
-            freezeMask[idx] = 1;
+            freezeMask[idx] = addMode ? 1 : 0;
+
             const di = idx * 4;
-            data[di] = 255;
-            data[di + 1] = 0;
-            data[di + 2] = 0;
-            data[di + 3] = 128;
+            if (addMode) {
+                // Paint red overlay
+                data[di] = 255;
+                data[di + 1] = 0;
+                data[di + 2] = 0;
+                data[di + 3] = 128;
+            } else {
+                // Erase overlay (clear pixel)
+                data[di] = 0;
+                data[di + 1] = 0;
+                data[di + 2] = 0;
+                data[di + 3] = 0;
+            }
         }
     }
+
     maskCtx.putImageData(imgData, 0, 0);
 }
+
 
 // ========================
 // --- Pan & Zoom Tool ----

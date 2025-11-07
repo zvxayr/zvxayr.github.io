@@ -131,7 +131,7 @@ canvas {
     top: 0;
     left: 0;
     transform-origin: top left;
-    transition: transform 0.1s ease-out;
+    image-rendering: auto;
 }
 
 canvas.pixelated {
