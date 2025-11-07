@@ -313,7 +313,7 @@
                     pixels.push(row);
                 }
     
-                const dithered = floydSteinbergDither(pixels, lastDithered, activePalette, freezeMask, ratio, errorClip, jitter, balance, gamma, seed, greyPenalty, edgeFalloff);
+                const dithered = floyd_steinberg_dither_wasm(pixels, lastDithered, activePalette, freezeMask, ratio, errorClip, jitter, balance, gamma, seed, greyPenalty, edgeFalloff);
                 lastDithered = dithered;
     
                 for (let y = 0; y < h; y++) {
