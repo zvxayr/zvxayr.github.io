@@ -49,12 +49,15 @@ function makeDistanceFunction(palette, channelBalance = 0.75, gammaInput = 1.2, 
 
 
 // Dithering function uses the prebuilt distance function for speed.
-function floydSteinbergDither(img, palette, ratio = 0.8, errorClip = 255.0,
-    jitter = 8, channelBalance = 0.75, gammaInput = 1.2, seed = 42, chromaWeight = 0.3, edgeFalloff = 0.5) {
+function floydSteinbergDither(originalImg, prevDithered, palette,
+    freezeMask = null, ratio = 0.8, errorClip = 255.0, jitter = 8,
+    channelBalance = 0.75, gammaInput = 1.2, seed = 42, chromaWeight = 0.3,
+    edgeFalloff = 0.5) {
 
-    const h = img.length, w = img[0].length;
+    const h = originalImg.length, w = originalImg[0].length;
     const output = Array.from({ length: h }, () => Array.from({ length: w }, () => [0, 0, 0, 255]));
-    const errorImg = img.map(row => row.map(px => [...px]));
+    const errorImg = originalImg.map(row => row.map(px => [...px]));
+
     let rngState = seed >>> 0;
     const rand = () => ((rngState = (1664525 * rngState + 1013904223) >>> 0) / 0x100000000);
 
@@ -69,18 +72,26 @@ function floydSteinbergDither(img, palette, ratio = 0.8, errorClip = 255.0,
                 continue;
             }
 
-            // Add noise for dithering
-            const noise = [
-                (rand() * 2 - 1 + rand() * 2 - 1) * (jitter / 2),
-                (rand() * 2 - 1 + rand() * 2 - 1) * (jitter / 2),
-                (rand() * 2 - 1 + rand() * 2 - 1) * (jitter / 2)
-            ];
-            const noisyPixel = oldPixel.map((v, i) => i < 3
-                ? Math.min(255, Math.max(0, v + noise[i]))
-                : v);
+            let newPixel;
 
-            const idx = distanceFn(noisyPixel);
-            const newPixel = palette[idx];
+            // --- Frozen pixel: use previous dithered color but still diffuse error ---
+            if (freezeMask && freezeMask[y * w + x] && prevDithered && prevDithered[y] && prevDithered[y][x]) {
+                newPixel = prevDithered[y][x].slice(0, 3);
+            } else {
+                // Add noise for dithering
+                const noise = [
+                    (rand() * 2 - 1 + rand() * 2 - 1) * (jitter / 2),
+                    (rand() * 2 - 1 + rand() * 2 - 1) * (jitter / 2),
+                    (rand() * 2 - 1 + rand() * 2 - 1) * (jitter / 2)
+                ];
+                const noisyPixel = oldPixel.map((v, i) => i < 3
+                    ? Math.min(255, Math.max(0, v + noise[i]))
+                    : v);
+
+                const idx = distanceFn(noisyPixel);
+                newPixel = palette[idx];
+            }
+
             output[y][x] = [...newPixel, oldPixel[3]];
 
             const quantError = oldPixel.slice(0, 3).map((v, i) =>
@@ -89,16 +100,16 @@ function floydSteinbergDither(img, palette, ratio = 0.8, errorClip = 255.0,
 
             // === Compute local gradient magnitude from the original (pre-error) image ===
             let gradSq = 0;
-            const base = img[y][x];
+            const base = originalImg[y][x];
             if (x > 0) {
-                const prev = img[y][x - 1];
+                const prev = originalImg[y][x - 1];
                 gradSq +=
                     Math.pow(base[0] - prev[0], 2) +
                     Math.pow(base[1] - prev[1], 2) +
                     Math.pow(base[2] - prev[2], 2);
             }
             if (y > 0) {
-                const prev = img[y - 1][x];
+                const prev = originalImg[y - 1][x];
                 gradSq +=
                     Math.pow(base[0] - prev[0], 2) +
                     Math.pow(base[1] - prev[1], 2) +
