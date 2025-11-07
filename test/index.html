@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Floyd–Steinberg Dithering</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <h1>🎨 Dithering</h1>
+
+            <section class="settings-section">
+                <h2>Image</h2>
+                <input type="file" id="fileInput" accept="image/*">
+                <input type="url" id="urlInput" placeholder="Image URL...">
+                <button id="loadUrlBtn">Load</button>
+
+                <label>Scale:
+                    <input type="number" id="scaleInput" value="1.00" step="0.05" min="0.05">
+                </label>
+                <label>Interpolation:
+                    <select id="interpolation">
+                        <option value="nearest">Nearest</option>
+                        <option value="bilinear" selected>Bilinear</option>
+                        <option value="bicubic">Bicubic</option>
+                    </select>
+                </label>
+                <label>
+                    Transparency Threshold
+                    <input type="number" id="transparencyInput" value="178" step="1" min="0" max="255">
+                </label>
+            </section>
+
+            <section class="settings-section">
+                <h2 title="Used for touch-ups. Click Edit Mask to 'paint' regions you want fixed. Subsequent edits will leave those pixels untouched. Click the button again to leave mask edit mode. Panning and zooming are disabled in this mode. (WIP)">Freeze Mask</h2>
+
+                <label>
+                    Brush Size
+                    <input type="number" id="brushSize" value="6" step="1" min="1" max="50">
+                </label>
+
+                <button id="toggleMaskModeBtn" title="Add mode to set frozen pixels. Subtract mode to unfreeze pixels.">Mode: Add</button>
+                <button id="editMaskBtn">Edit Mask</button>
+                <button id="clearMaskBtn">Clear Mask</button>
+            </section>
+
+            <section class="settings-section">
+                <h2>Dither Settings</h2>
+
+                <fieldset>
+                    <legend>Advanced Dithering Controls</legend>
+                    <div class="advancedControls">
+                        <label
+                            title="Controls how much color error spreads to neighboring pixels. Set to 1.0 for classic Floyd–Steinberg diffusion, or lower values for a sharper, more pixelated look.">
+                            Diffusion Ratio
+                            <input type="number" id="ratioInput" value="0.75" step="0.05" min="0" max="2">
+                        </label>
+
+                        <label
+                            title="Adjusts how brightness differences are perceived when finding the nearest palette color. Use 1.0 for linear RGB; higher values (e.g. 1.5–2) make bright areas smoother; lower values emphasize dark tones.">
+                            Gamma
+                            <input type="number" id="gammaInput" value="1.2" step="0.1" min="0.1" max="3">
+                        </label>
+
+                        <label
+                            title="Changes how much importance is given to human color sensitivity. Use 0 for pure RGB distance; 1.0 gives more realistic perceptual weighting (green matters more, blue less).">
+                            Balance
+                            <input type="number" id="balanceInput" value="0.75" step="0.05" min="0.00" max="2.00">
+                        </label>
+
+                        <label
+                            title="Controls how much colorful pixels avoid mid-grey palette colors. Higher values make colorful areas less likely to map to grey.">
+                            Grey Penalty
+                            <input type="number" id="greyPenaltyInput" value="0.3" step="0.05" min="0" max="2">
+                        </label>
+
+                        <label
+                            title="Limits error diffusion near edges. Higher = sharper edges, lower = smoother blending. Use this to reduce unwanted specular highlights.">
+                            Edge Falloff
+                            <input type="number" id="edgeFalloffInput" value="0.05" step="0.05" min="0" max="5">
+                        </label>
+
+                        <label
+                            title="Limits how large a color correction error can spread to neighboring pixels. Lower values make diffusion weaker and preserve edges; higher values produce smoother dithering transitions.">
+                            Error Clip
+                            <input type="number" id="errorClipInput" value="128" step="1" min="0" max="512">
+                        </label>
+
+                        <label
+                            title="Adds random noise before quantizing each pixel. Small values (0–8) reduce banding; large values create a more film-grain look. Set to 0 for perfectly clean dithering.">
+                            Jitter
+                            <input type="number" id="jitterInput" value="8" step="1" min="0" max="64">
+                        </label>
+
+                        <label
+                            title="Sets the random seed used for Jitter noise. Change this to produce different but repeatable random patterns for the same image.">
+                            Seed
+                            <input type="number" id="seedInput" value="42" step="1" min="0">
+                        </label>
+                    </div>
+                </fieldset>
+            </section>
+
+            <section class="settings-section">
+                <button id="downloadBtn" disabled>Download</button>
+                <button id="shareBtn">Share</button>
+            </section>
+        </aside>
+
+        <main class="main-area">
+            <div class="info" id="infoText">No image loaded.</div>
+            <input type="range" id="compareSlider" min="0" max="1" step="0.01" value="1">
+            <div class="canvas-wrapper" id="canvasWrapper">
+                <canvas id="beforeCanvas"></canvas>
+                <canvas id="canvas"></canvas>
+                <canvas id="maskCanvas"></canvas>
+            </div>
+        </main>
+
+        <footer class="palette-footer">
+            <legend>Color Palette</legend>
+            <div id="paletteControls" class="palette-controls"></div>
+        </footer>
+    </div>
+
+    <script src="js/query.js"></script>
+    <script src="js/palette.js"></script>
+    <script src="js/dithering.js"></script>
+    <script src="js/tools.js"></script>
+    <script type="module">
+        import init, { floyd_steinberg_dither_wasm } from "./pkg/dithering_wasm.js"
+        // ---- UI Setup ----
+        const fileInput = document.getElementById('fileInput');
+        const scaleInput = document.getElementById('scaleInput');
+        const interpolation = document.getElementById('interpolation');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const infoText = document.getElementById('infoText');
+        const canvas = document.getElementById('canvas');
+        const beforeCanvas = document.getElementById('beforeCanvas');
+        const compareSlider = document.getElementById('compareSlider');
+        const ctx = canvas.getContext('2d');
+
+        const ratioInput = document.getElementById('ratioInput');
+        const jitterInput = document.getElementById('jitterInput');
+        const gammaInput = document.getElementById('gammaInput');
+        const balanceInput = document.getElementById('balanceInput');
+        const seedInput = document.getElementById('seedInput');
+        const paletteControls = document.getElementById('paletteControls');
+        const greyPenaltyInput = document.getElementById('greyPenaltyInput');
+        const edgeFalloffInput = document.getElementById('edgeFalloffInput');
+        const errorClipInput = document.getElementById('errorClipInput');
+        const transparencyInput = document.getElementById('transparencyInput');
+
+        const PALETTE = [
+            [0, 0, 0, "Black"], [60, 60, 60, "Dark Gray"], [120, 120, 120, "Gray"],
+            [170, 170, 170, "Medium Gray"], [210, 210, 210, "Light Gray"], [255, 255, 255, "White"],
+            [96, 0, 24, "Deep Red"], [165, 14, 30, "Dark Red"], [237, 28, 36, "Red"],
+            [250, 128, 114, "Light Red"], [228, 92, 26, "Dark Orange"], [255, 127, 39, "Orange"],
+            [246, 170, 9, "Gold"], [249, 221, 59, "Yellow"], [255, 250, 188, "Light Yellow"],
+            [156, 132, 49, "Dark Goldenrod"], [197, 173, 49, "Goldenrod"], [232, 212, 95, "Light Goldenrod"],
+            [74, 107, 58, "Dark Olive"], [90, 148, 74, "Olive"], [132, 197, 115, "Light Olive"],
+            [14, 185, 104, "Dark Green"], [19, 230, 123, "Green"], [135, 255, 94, "Light Green"],
+            [12, 129, 110, "Dark Teal"], [16, 174, 166, "Teal"], [19, 225, 190, "Light Teal"],
+            [15, 121, 159, "Dark Cyan"], [96, 247, 242, "Cyan"], [187, 250, 242, "Light Cyan"],
+            [40, 80, 158, "Dark Blue"], [64, 147, 228, "Blue"], [125, 199, 255, "Light Blue"],
+            [77, 49, 184, "Dark Indigo"], [107, 80, 246, "Indigo"], [153, 177, 251, "Light Indigo"],
+            [74, 66, 132, "Dark Slate Blue"], [122, 113, 196, "Slate Blue"], [181, 174, 241, "Light Slate Blue"],
+            [120, 12, 153, "Dark Purple"], [170, 56, 185, "Purple"], [224, 159, 249, "Light Purple"],
+            [203, 0, 122, "Dark Pink"], [236, 31, 128, "Pink"], [243, 141, 169, "Light Pink"],
+            [155, 82, 73, "Dark Peach"], [209, 128, 120, "Peach"], [250, 182, 164, "Light Peach"],
+            [104, 70, 52, "Dark Brown"], [149, 104, 42, "Brown"], [219, 164, 99, "Light Brown"],
+            [123, 99, 82, "Dark Tan"], [156, 132, 107, "Tan"], [214, 181, 148, "Light Tan"],
+            [209, 128, 81, "Dark Beige"], [248, 178, 119, "Beige"], [255, 197, 165, "Light Beige"],
+            [109, 100, 63, "Dark Stone"], [148, 140, 107, "Stone"], [205, 197, 158, "Light Stone"],
+            [51, 57, 65, "Dark Slate"], [109, 117, 141, "Slate"], [179, 185, 209, "Light Slate"]
+        ];
+
+        let enabledColors = new Array(PALETTE.length).fill(true);
+        // Apply query-based palette control
+        if (enabledIndices !== null) {
+            enabledColors = enabledColors.map((_, i) => enabledIndices.includes(i));
+        } else if (disabledIndices.length > 0) {
+            disabledIndices.forEach(i => {
+                if (i >= 0 && i < enabledColors.length) enabledColors[i] = false;
+            });
+        }
+
+        let lastImage = null;
+        let lastDithered = null;
+
+        init().then(() => {
+            // Generate palette buttons
+            PALETTE.forEach(([r, g, b, name], i) => {
+                const btn = document.createElement('div');
+                btn.className = 'color-btn enabled';
+                btn.title = name;
+                btn.style.backgroundColor = `rgb(${r},${g},${b})`;
+                btn.dataset.index = i;
+                btn.addEventListener('click', () => {
+                    enabledColors[i] = !enabledColors[i];
+                    btn.className = 'color-btn ' + (enabledColors[i] ? 'enabled' : 'disabled');
+                    if (lastImage) processImage();
+                });
+                paletteControls.appendChild(btn);
+            });
+    
+            fileInput.addEventListener('change', e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    lastImage = img;
+                    resizeCanvasesToScale();
+                    processImage();
+                };
+                img.src = URL.createObjectURL(file);
+            });
+    
+            // ---- Auto-load image if src query parameter provided ----
+            if (window.initialImageSrc) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    lastImage = img;
+                    processImage();
+                    resetTransform();
+                };
+                img.src = window.initialImageSrc;
+            }
+    
+            let processTimeout;
+            function queueProcess() {
+                if (processTimeout) clearTimeout(processTimeout);
+                processTimeout = setTimeout(() => {
+                    if (lastImage) processImage();
+                }, 100);
+            }
+    
+            [interpolation, ratioInput, jitterInput, gammaInput, balanceInput, seedInput, greyPenaltyInput, edgeFalloffInput, errorClipInput, transparencyInput]
+                .forEach(el => el.addEventListener('input', queueProcess));
+    
+            scaleInput.addEventListener('input', () => {
+                resizeCanvasesToScale();
+                processImage();
+            });
+    
+            function resizeCanvasesToScale() {
+                if (!lastImage) return;
+    
+                const scale = Math.max(parseFloat(scaleInput.value) || 1, 0.1);
+                const w = Math.round(lastImage.width * scale);
+                const h = Math.round(lastImage.height * scale);
+    
+                // Resize only image display canvases — leave mask unless necessary
+                canvas.width = w;
+                canvas.height = h;
+                beforeCanvas.width = w;
+                beforeCanvas.height = h;
+    
+                // Ensure mask exists and matches new size
+                const maskNeedsResize = !freezeMask || freezeMask.length !== w * h;
+                if (maskNeedsResize) {
+                    console.log("resizing freeze mask");
+                    freezeMask = new Uint8Array(w * h);
+                    maskCanvas.width = w;
+                    maskCanvas.height = h;
+                    maskCtx.clearRect(0, 0, w, h);
+                }
+    
+                // Keep other visuals aligned
+                resetTransform();
+            }
+    
+            function processImage() {
+                const scale = Math.max(parseFloat(scaleInput.value) || 1, 0.1);
+                const interp = interpolation.value;
+                const ratio = parseFloat(ratioInput.value);
+                const jitter = parseFloat(jitterInput.value);
+                const gamma = parseFloat(gammaInput.value);
+                const balance = parseFloat(balanceInput.value);
+                const seed = parseInt(seedInput.value);
+                const greyPenalty = parseFloat(greyPenaltyInput.value);
+                const edgeFalloff = parseFloat(edgeFalloffInput.value);
+                const errorClip = parseFloat(errorClipInput.value);
+                const transparencyThreshold = parseInt(transparencyInput.value);
+    
+                const activePalette = PALETTE.filter((_, i) => enabledColors[i]).map(([r, g, b]) => [r, g, b]);
+    
+                const w = canvas.width;
+                const h = canvas.height;
+    
+                ctx.imageSmoothingEnabled = interp !== 'nearest';
+                ctx.imageSmoothingQuality = interp === 'bicubic' ? 'high' : interp === 'bilinear' ? 'medium' : 'low';
+                beforeCanvas.getContext('2d').drawImage(lastImage, 0, 0, w, h);
+    
+                ctx.clearRect(0, 0, w, h);
+                ctx.drawImage(lastImage, 0, 0, w, h);
+    
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const data = imgData.data;
+    
+                const pixels = [];
+                for (let y = 0; y < h; y++) {
+                    const row = [];
+                    for (let x = 0; x < w; x++) {
+                        const i = (y * w + x) * 4;
+                        row.push([data[i], data[i + 1], data[i + 2], data[i + 3]]);
+                    }
+                    pixels.push(row);
+                }
+    
+                const dithered = floydSteinbergDither(pixels, lastDithered, activePalette, freezeMask, ratio, errorClip, jitter, balance, gamma, seed, greyPenalty, edgeFalloff);
+                lastDithered = dithered;
+    
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        const [r, g, b] = dithered[y][x];
+                        const i = (y * w + x) * 4;
+                        data[i] = r;
+                        data[i + 1] = g;
+                        data[i + 2] = b;
+                        data[i + 3] = data[i + 3] < transparencyThreshold ? 0 : 255;
+                    }
+                }
+    
+                ctx.putImageData(imgData, 0, 0);
+                downloadBtn.disabled = false;
+                infoText.textContent =
+                    `Original: ${lastImage.width}×${lastImage.height} → Dithered: ${w}×${h} (${interp}), ` +
+                    `ratio=${ratio}, jitter=${jitter}, gamma=${gamma}, balance=${balance}, seed=${seed}, active colors=${activePalette.length}`;
+    
+                // ---- Sync compare slider (split view: original left, dithered right) ----
+                function updateCompareClip() {
+                    const value = compareSlider.value * 100;
+                    // Show left part of original, right part of dithered
+                    beforeCanvas.style.clipPath = `inset(0 0 0 ${value}%)`;
+                    canvas.style.clipPath = `inset(0 ${100 - value}% 0 0)`;
+                }
+    
+                updateCompareClip(); // initialize
+                compareSlider.addEventListener('input', updateCompareClip);
+            }
+    
+            downloadBtn.addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = 'dithered.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+    </script>
+    <script src="js/share.js"></script>
+</body>
+
+</html>
