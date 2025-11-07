@@ -32,6 +32,9 @@
                     Transparency Threshold
                     <input type="number" id="transparencyInput" value="178" step="1" min="0" max="255">
                 </label>
+
+                <button id="editMaskBtn">Edit Mask</button>
+                <button id="clearMaskBtn">Clear Mask</button>
             </section>
 
             <section class="settings-section">
@@ -103,6 +106,7 @@
             <div class="canvas-wrapper" id="canvasWrapper">
                 <canvas id="beforeCanvas"></canvas>
                 <canvas id="canvas"></canvas>
+                <canvas id="maskCanvas"></canvas>
             </div>
         </main>
 
@@ -115,6 +119,7 @@
     <script src="js/query.js"></script>
     <script src="js/palette.js"></script>
     <script src="js/dithering.js"></script>
+    <script src="js/tools.js"></script>
     <script>
         // ---- UI Setup ----
         const fileInput = document.getElementById('fileInput');
@@ -171,7 +176,9 @@
                 if (i >= 0 && i < enabledColors.length) enabledColors[i] = false;
             });
         }
+
         let lastImage = null;
+        let lastDithered = null;
 
         // Generate palette buttons
         PALETTE.forEach(([r, g, b, name], i) => {
@@ -195,8 +202,8 @@
             img.crossOrigin = "anonymous";
             img.onload = () => {
                 lastImage = img;
+                resizeCanvasesToScale();
                 processImage();
-                resetTransform();
             };
             img.src = URL.createObjectURL(file);
         });
@@ -224,10 +231,37 @@
         [interpolation, ratioInput, jitterInput, gammaInput, balanceInput, seedInput, greyPenaltyInput, edgeFalloffInput, errorClipInput, transparencyInput]
             .forEach(el => el.addEventListener('input', queueProcess));
 
-        [scaleInput].forEach(el => el.addEventListener('input', () => {
+        scaleInput.addEventListener('input', () => {
+            resizeCanvasesToScale();
             processImage();
+        });
+
+        function resizeCanvasesToScale() {
+            if (!lastImage) return;
+
+            const scale = Math.max(parseFloat(scaleInput.value) || 1, 0.1);
+            const w = Math.round(lastImage.width * scale);
+            const h = Math.round(lastImage.height * scale);
+
+            // Resize only image display canvases — leave mask unless necessary
+            canvas.width = w;
+            canvas.height = h;
+            beforeCanvas.width = w;
+            beforeCanvas.height = h;
+
+            // Ensure mask exists and matches new size
+            const maskNeedsResize = !freezeMask || freezeMask.length !== w * h;
+            if (maskNeedsResize) {
+                console.log("resizing freeze mask");
+                freezeMask = new Uint8Array(w * h);
+                maskCanvas.width = w;
+                maskCanvas.height = h;
+                maskCtx.clearRect(0, 0, w, h);
+            }
+
+            // Keep other visuals aligned
             resetTransform();
-        }));
+        }
 
         function processImage() {
             const scale = Math.max(parseFloat(scaleInput.value) || 1, 0.1);
@@ -244,16 +278,11 @@
 
             const activePalette = PALETTE.filter((_, i) => enabledColors[i]).map(([r, g, b]) => [r, g, b]);
 
-            const w = Math.round(lastImage.width * scale);
-            const h = Math.round(lastImage.height * scale);
+            const w = canvas.width;
+            const h = canvas.height;
 
-            canvas.width = w;
-            canvas.height = h;
             ctx.imageSmoothingEnabled = interp !== 'nearest';
             ctx.imageSmoothingQuality = interp === 'bicubic' ? 'high' : interp === 'bilinear' ? 'medium' : 'low';
-
-            beforeCanvas.width = w;
-            beforeCanvas.height = h;
             beforeCanvas.getContext('2d').drawImage(lastImage, 0, 0, w, h);
 
             ctx.clearRect(0, 0, w, h);
@@ -272,7 +301,8 @@
                 pixels.push(row);
             }
 
-            const dithered = floydSteinbergDither(pixels, activePalette, ratio, errorClip, jitter, balance, gamma, seed, greyPenalty, edgeFalloff);
+            const dithered = floydSteinbergDither(pixels, lastDithered, activePalette, freezeMask, ratio, errorClip, jitter, balance, gamma, seed, greyPenalty, edgeFalloff);
+            lastDithered = dithered;
 
             for (let y = 0; y < h; y++) {
                 for (let x = 0; x < w; x++) {
@@ -310,7 +340,6 @@
             link.click();
         });
     </script>
-    <script src="js/panzoom.js"></script>
     <script src="js/share.js"></script>
 </body>
 
