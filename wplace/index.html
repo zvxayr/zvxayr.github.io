@@ -350,7 +350,7 @@
             const errorClip = parseFloat(errorClipInput.value);
             const transparencyThreshold = parseInt(transparencyInput.value);
 
-            const activePalette = PALETTE.filter((_, i) => enabledColors[i]).map(([r, g, b]) => [r, g, b]);
+            const activePalette = PALETTE.filter((_, i) => enabledColors[i]);
 
             const w = canvas.width;
             const h = canvas.height;
@@ -363,49 +363,31 @@
             ctx.drawImage(lastImage, 0, 0, w, h);
 
             const imgData = ctx.getImageData(0, 0, w, h);
-            const data = imgData.data;
 
-            const pixels = [];
-            for (let y = 0; y < h; y++) {
-                const row = [];
-                for (let x = 0; x < w; x++) {
-                    const i = (y * w + x) * 4;
-                    row.push([data[i], data[i + 1], data[i + 2], data[i + 3]]);
-                }
-                pixels.push(row);
-            }
+            const ditheredData = floydSteinbergDither(
+                imgData.data, w, h, lastDithered, activePalette, freezeMask,
+                { ratio, errorClip, jitter, channelBalance: balance, gammaInput: gamma, seed, chromaWeight: greyPenalty, edgeFalloff }
+            );
 
-            const dithered = floydSteinbergDither(pixels, lastDithered, activePalette, freezeMask, ratio, errorClip, jitter, balance, gamma, seed, greyPenalty, edgeFalloff);
-            lastDithered = dithered;
-
-            for (let y = 0; y < h; y++) {
-                for (let x = 0; x < w; x++) {
-                    const [r, g, b] = dithered[y][x];
-                    const i = (y * w + x) * 4;
-                    data[i] = r;
-                    data[i + 1] = g;
-                    data[i + 2] = b;
-                    data[i + 3] = data[i + 3] < transparencyThreshold ? 0 : 255;
-                }
-            }
-
+            lastDithered = ditheredData;
+            imgData.data.set(ditheredData);
             ctx.putImageData(imgData, 0, 0);
+
             downloadBtn.disabled = false;
             infoText.textContent =
                 `Original: ${lastImage.width}×${lastImage.height} → Dithered: ${w}×${h} (${interp}), ` +
                 `ratio=${ratio}, jitter=${jitter}, gamma=${gamma}, balance=${balance}, seed=${seed}, active colors=${activePalette.length}`;
 
-            // ---- Sync compare slider (split view: original left, dithered right) ----
-            function updateCompareClip() {
-                const value = compareSlider.value * 100;
-                // Show left part of original, right part of dithered
-                beforeCanvas.style.clipPath = `inset(0 0 0 ${value}%)`;
-                canvas.style.clipPath = `inset(0 ${100 - value}% 0 0)`;
-            }
-
-            updateCompareClip(); // initialize
-            compareSlider.addEventListener('input', updateCompareClip);
         }
+
+        function updateCompareClip() {
+            const value = compareSlider.value * 100;
+            beforeCanvas.style.clipPath = `inset(0 0 0 ${value}%)`;
+            canvas.style.clipPath = `inset(0 ${100 - value}% 0 0)`;
+        }
+
+        updateCompareClip();
+        compareSlider.addEventListener('input', updateCompareClip);
 
         downloadBtn.addEventListener('click', () => {
             const link = document.createElement('a');
