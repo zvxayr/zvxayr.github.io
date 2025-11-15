@@ -369,6 +369,19 @@
                 { ratio, errorClip, jitter, channelBalance: balance, gammaInput: gamma, seed, chromaWeight: greyPenalty, edgeFalloff }
             );
 
+            for (let i = 0; i < ditheredData.length; i += 4) {
+                const pixelIndex = i >> 2;
+
+                // use previous alpha if frozen
+                if (freezeMask && freezeMask[pixelIndex] && lastDithered) {
+                    ditheredData[i + 3] = lastDithered[i + 3]
+                } else {
+                    const a = ditheredData[i + 3];
+                    ditheredData[i + 3] = (a < transparencyThreshold ? 0 : 255);
+                }
+
+            }
+
             lastDithered = ditheredData;
             imgData.data.set(ditheredData);
             ctx.putImageData(imgData, 0, 0);
