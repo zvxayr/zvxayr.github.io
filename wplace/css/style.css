@@ -152,17 +152,18 @@ canvas.pixelated {
 }
 
 .color-btn {
-    width: 20px;
-    height: 20px;
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
     border-radius: 4px;
     cursor: pointer;
     transition: transform 0.1s ease, opacity 0.2s ease;
 }
 
-.color-btn.enabled:hover {
-    transform: scale(1.2);
+.color-btn.enabled {
+    border: 2px solid grey;
 }
 
 .color-btn.disabled {
-    opacity: 0.3;
+    border: 2px solid darkred;
 }

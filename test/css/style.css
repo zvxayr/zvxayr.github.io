@@ -165,4 +165,5 @@ canvas.pixelated {
 
 .color-btn.disabled {
     opacity: 0.3;
+    border: 1px solid darkred;
 }
