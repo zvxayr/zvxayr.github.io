@@ -58,6 +58,8 @@ function activateTool(toolName) {
     maskCanvas.style.pointerEvents = isBrush ? 'auto' : 'none';
     maskCanvas.style.opacity = isBrush ? '0.5' : '0';
 
+    brushPreviewCanvas.style.opacity = isBrush ? '1' : '0';
+
     // Fix cursor
     wrapper.style.cursor = toolName === 'panZoom' ? 'grab' : 'crosshair';
 }
@@ -199,11 +201,65 @@ tools.panZoom = {
 // ====================
 let activeTool = tools.panZoom; // default mode
 
+function drawBrushPreview(e) {
+    if (!brushPreviewCanvas.width) return;
+
+    const w = brushPreviewCanvas.width;
+    const h = brushPreviewCanvas.height;
+    const x = e.offsetX;
+    const y = e.offsetY;
+    const r = brushSize;
+
+    const imgData = brushPreviewCtx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+
+    // Clear previous frame efficiently
+    for (let i = 0; i < data.length; i += 4) {
+        data[i + 3] = 0; // just clear alpha
+    }
+
+    // Draw every pixel the brush would hit
+    for (let j = -r; j <= r; j++) {
+        for (let i = -r; i <= r; i++) {
+
+            // Circle test (same as paintAt)
+            if (i * i + j * j > r * r) continue;
+
+            const px = Math.floor(x + i);
+            const py = Math.floor(y + j);
+
+            if (px < 0 || px >= w || py < 0 || py >= h) continue;
+
+            const idx = (py * w + px) * 4;
+
+            // preview color matches mode
+            if (paintMode === 'add') {
+                data[idx] = 255;     // red
+                data[idx + 1] = 0;
+                data[idx + 2] = 0;
+                data[idx + 3] = 160; // visible alpha
+            } else {
+                data[idx] = 0;
+                data[idx + 1] = 255; // green for subtract
+                data[idx + 2] = 0;
+                data[idx + 3] = 160;
+            }
+        }
+    }
+
+    brushPreviewCtx.putImageData(imgData, 0, 0);
+}
+
+
+
 // --- Generic Event Delegation ---
 wrapper.addEventListener('mousedown', e => activeTool?.onMouseDown?.(e));
 wrapper.addEventListener('mousemove', e => activeTool?.onMouseMove?.(e));
 window.addEventListener('mouseup', e => activeTool?.onMouseUp?.(e));
 wrapper.addEventListener('wheel', e => activeTool?.onWheel?.(e));
+wrapper.addEventListener('mousemove', e => {
+    if (activeTool === tools.maskEdit) drawBrushPreview(e);
+});
 
 // --- Mask Edit Controls ---
 const editMaskBtn = document.getElementById('editMaskBtn');
@@ -215,6 +271,7 @@ editMaskBtn.addEventListener('click', () => {
     maskCanvas.style.pointerEvents = editing ? 'auto' : 'none';
     maskCanvas.style.opacity = editing ? '0.5' : '0';
     editMaskBtn.textContent = editing ? 'Exit Mask Edit' : 'Edit Mask';
+    brushPreviewCanvas.style.opacity = editing ? '1' : '0';
 });
 
 clearMaskBtn.addEventListener('click', () => {
