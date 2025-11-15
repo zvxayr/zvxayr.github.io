@@ -20,7 +20,7 @@ window.addEventListener('keydown', e => {
 
         // Make mask overlay non-interactive while space is held
         maskCanvas.style.pointerEvents = 'none';
-        wrapper.style.cursor = 'grabbing';
+        wrapper.style.cursor = 'grab';
     }
 });
 
