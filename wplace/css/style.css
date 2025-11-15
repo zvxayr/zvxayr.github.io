@@ -158,6 +158,7 @@ canvas.pixelated {
     border-radius: 4px;
     cursor: pointer;
     transition: transform 0.1s ease, opacity 0.2s ease;
+    position: relative;
 }
 
 .color-btn.enabled {
@@ -166,4 +167,17 @@ canvas.pixelated {
 
 .color-btn.disabled {
     border: 2px solid darkred;
+}
+
+/* Small corner triangle */
+.paid-indicator {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-top: 8px solid gold; /* change color if you like */
+    pointer-events: none; /* doesn't block clicking */
 }
