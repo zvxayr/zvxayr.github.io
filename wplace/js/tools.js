@@ -4,6 +4,68 @@ const brushSizeInput = document.getElementById('brushSize');
 const maskCanvas = document.getElementById('maskCanvas');
 const maskCtx = maskCanvas.getContext('2d');
 
+const toolPanBtn = document.getElementById('toolPanBtn');
+const toolBrushBtn = document.getElementById('toolBrushBtn');
+
+let previousTool = null;
+let spaceHeld = false;
+
+window.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !spaceHeld) {
+        spaceHeld = true;
+
+        // Save current tool and switch to pan
+        previousTool = activeTool;
+        activeTool = tools.panZoom;
+
+        // Make mask overlay non-interactive while space is held
+        maskCanvas.style.pointerEvents = 'none';
+        wrapper.style.cursor = 'grabbing';
+    }
+});
+
+window.addEventListener('keyup', e => {
+    if (e.code === 'Space' && spaceHeld) {
+        spaceHeld = false;
+
+        // Restore previous tool
+        if (previousTool) {
+            activeTool = previousTool;
+            previousTool = null;
+        }
+
+        // Restore brush/pan UI state
+        if (activeTool === tools.maskEdit) {
+            maskCanvas.style.pointerEvents = 'auto';
+            wrapper.style.cursor = 'crosshair';
+        } else {
+            wrapper.style.cursor = 'grab';
+        }
+    }
+});
+
+
+function activateTool(toolName) {
+    // Switch active tool
+    activeTool = tools[toolName];
+
+    // Update UI button states
+    toolPanBtn.classList.toggle('active', toolName === 'panZoom');
+    toolBrushBtn.classList.toggle('active', toolName === 'maskEdit');
+
+    // Brush visibility
+    const isBrush = toolName === 'maskEdit';
+    maskCanvas.style.pointerEvents = isBrush ? 'auto' : 'none';
+    maskCanvas.style.opacity = isBrush ? '0.5' : '0';
+
+    // Fix cursor
+    wrapper.style.cursor = toolName === 'panZoom' ? 'grab' : 'crosshair';
+}
+
+// Button events
+toolPanBtn.addEventListener('click', () => activateTool('panZoom'));
+toolBrushBtn.addEventListener('click', () => activateTool('maskEdit'));
+
 let freezeMask = null;
 let paintMode = 'add'; // 'add' or 'subtract'
 
