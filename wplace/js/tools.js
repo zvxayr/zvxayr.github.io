@@ -44,7 +44,6 @@ window.addEventListener('keyup', e => {
     }
 });
 
-
 function activateTool(toolName) {
     // Switch active tool
     activeTool = tools[toolName];
@@ -62,6 +61,18 @@ function activateTool(toolName) {
 
     // Fix cursor
     wrapper.style.cursor = toolName === 'panZoom' ? 'grab' : 'crosshair';
+}
+
+function getPixelPosFromEvent(e) {
+    const rect = wrapper.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Undo pan & zoom
+    const worldX = (mouseX - offsetX) / zoom;
+    const worldY = (mouseY - offsetY) / zoom;
+    
+    return { x: worldX, y: worldY };
 }
 
 // Button events
@@ -88,6 +99,8 @@ tools.maskEdit = {
 
     onMouseDown(e) {
         this.isPainting = true;
+        const { x, y } = getPixelPosFromEvent(e);
+        paintAt(x, y);
         paintAt(e.offsetX, e.offsetY);
     },
     onMouseMove(e) {
@@ -151,7 +164,6 @@ function paintAt(x, y) {
     maskCtx.putImageData(imgData, 0, 0);
 }
 
-
 // ========================
 // --- Pan & Zoom Tool ----
 // ========================
@@ -206,8 +218,7 @@ function drawBrushPreview(e) {
 
     const w = brushPreviewCanvas.width;
     const h = brushPreviewCanvas.height;
-    const x = e.offsetX;
-    const y = e.offsetY;
+    const { x, y } = getPixelPosFromEvent(e);
     const r = brushSize;
 
     const imgData = brushPreviewCtx.getImageData(0, 0, w, h);
@@ -249,8 +260,6 @@ function drawBrushPreview(e) {
 
     brushPreviewCtx.putImageData(imgData, 0, 0);
 }
-
-
 
 // --- Generic Event Delegation ---
 wrapper.addEventListener('mousedown', e => activeTool?.onMouseDown?.(e));
