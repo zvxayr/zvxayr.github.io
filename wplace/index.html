@@ -63,8 +63,8 @@
                 <h2>Dither Settings</h2>
 
                 <fieldset>
-                    <legend>Dithering Controls</legend>
-                    <div class="advancedControls">
+                    <legend>Error Propagation</legend>
+                    <div>
                         <label
                             title="Controls how much color error spreads to neighboring pixels. Set to 1.0 for classic Floyd–Steinberg diffusion, or lower values for a sharper, more pixelated look.">
                             Diffusion Ratio
@@ -72,15 +72,9 @@
                         </label>
 
                         <label
-                            title="Adjusts how brightness differences are perceived when finding the nearest palette color. Use 1.0 for linear RGB; higher values (e.g. 1.5–2) make bright areas smoother; lower values emphasize dark tones.">
-                            Gamma
-                            <input type="number" id="gammaInput" value="1.2" step="0.1" min="0.1" max="3">
-                        </label>
-
-                        <label
-                            title="Controls how much colorful pixels avoid mid-grey palette colors. Higher values make colorful areas less likely to map to grey.">
-                            Grey Penalty
-                            <input type="number" id="greyPenaltyInput" value="0.3" step="0.05" min="0" max="2">
+                            title="Controls how much color error spreads to neighboring pixels from frozen pixels. Multiplicative with the base diffusion ratio.">
+                            Frozen Diffusion Ratio
+                            <input type="number" id="frozenRatioInput" value="1.0" step="0.05" min="0" max="2">
                         </label>
 
                         <label
@@ -98,8 +92,25 @@
                 </fieldset>
 
                 <fieldset>
+                    <legend>Color Correction</legend>
+                    <div>
+                        <label
+                            title="Adjusts how brightness differences are perceived when finding the nearest palette color. Use 1.0 for linear RGB; higher values (e.g. 1.5–2) make bright areas smoother; lower values emphasize dark tones.">
+                            Gamma
+                            <input type="number" id="gammaInput" value="1.2" step="0.1" min="0.1" max="3">
+                        </label>
+
+                        <label
+                            title="Controls how much colorful pixels avoid mid-grey palette colors. Higher values make colorful areas less likely to map to grey.">
+                            Grey Penalty
+                            <input type="number" id="greyPenaltyInput" value="0.3" step="0.05" min="0" max="2">
+                        </label>
+                    </div>
+                </fieldset>
+
+                <fieldset>
                     <legend>Channel Weights</legend>
-                    <div class="rgb-balance-box">
+                    <div>
                         <label title="Weight multiplied to the red channel for the distance calculation">
                             R Weight
                             <input type="number" id="balanceR" value="0.3" step="0.01" min="0" max="5">
@@ -118,7 +129,7 @@
 
                 <fieldset>
                     <legend>Jitter</legend>
-                    <div class="rgb-balance-box">
+                    <div>
                         <label
                             title="Adds random noise before quantizing each pixel. Small values (0–8) reduce banding; large values create a more film-grain look. Set to 0 for perfectly clean dithering.">
                             Amount
@@ -183,6 +194,7 @@
             brushPreviewCanvas.style.opacity = '0';
 
             const ratioInput = document.getElementById('ratioInput');
+            const frozenRatioInput = document.getElementById('frozenRatioInput');
             const jitterInput = document.getElementById('jitterInput');
             const gammaInput = document.getElementById('gammaInput');
             const seedInput = document.getElementById('seedInput');
@@ -385,6 +397,7 @@
                 const scale = Math.max(parseFloat(scaleInput.value) || 1, 0.1);
                 const interp = interpolation.value;
                 const ratio = parseFloat(ratioInput.value);
+                const frozenRatio = parseFloat(frozenRatioInput.value);
                 const jitter = parseFloat(jitterInput.value);
                 const gamma = parseFloat(gammaInput.value);
                 const rWeight = parseFloat(balanceR.value);
@@ -414,7 +427,8 @@
                     imgData.data, w, h, lastDithered, activePalette, freezeMask,
                     {
                         ratio, errorClip, jitter, rWeight, gWeight, bWeight,
-                        gammaInput: gamma, seed, chromaWeight: greyPenalty, edgeFalloff
+                        gammaInput: gamma, seed, chromaWeight: greyPenalty, edgeFalloff,
+                        frozenRatio
                     }
                 );
 

@@ -35,7 +35,7 @@
     function floydSteinbergDither(
         data, w, h, prevDithered, palette, freezeMask = null,
         { ratio = 0.8, errorClip = 255, jitter = 8, rWeight = 0.3, gWeight = 0.59, bWeight = 0.11,
-            gammaInput = 1.2, seed = 42, chromaWeight = 0.3, edgeFalloff = 0.5 } = {}
+            gammaInput = 1.2, seed = 42, chromaWeight = 0.3, edgeFalloff = 0.5, frozenRatio = 1.0 } = {}
     ) {
         const output = new Uint8ClampedArray(data.length);
         const errorBuf = new Float32Array(data.length);
@@ -84,7 +84,7 @@
                 gradSq /= 6 * 255 * 255;
                 const edgeWeight = Math.exp(-gradSq * edgeFalloff);
 
-                const aRatio = ratio * alpha * edgeWeight * (isFrozen ? 0.5 : 1);
+                const aRatio = ratio * alpha * edgeWeight * (isFrozen ? frozenRatio : 1);
 
                 if (x + 1 < w) for (let j = 0; j < 3; j++) errorBuf[i + 4 + j] += quantError[j] * (7 / 16) * aRatio;
                 if (y + 1 < h) {
