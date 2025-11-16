@@ -110,7 +110,6 @@
             this.isPainting = true;
             const { x, y } = getPixelPosFromEvent(e);
             paintAt(x, y);
-            paintAt(e.offsetX, e.offsetY);
         },
         onMouseMove(e) {
             if (this.isPainting) paintAt(e.offsetX, e.offsetY);
