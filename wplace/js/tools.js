@@ -1,6 +1,6 @@
 (function () {
-
     // ======== Canvas Tool System ========
+    const appContainer = document.querySelector('.app-container');
     const wrapper = document.getElementById('canvasWrapper');
     const brushSizeInput = document.getElementById('brushSize');
     const maskCanvas = document.getElementById('maskCanvas');
@@ -56,6 +56,11 @@
         // Switch active tool
         activeTool = tools[toolName];
 
+        // Update data attribute (real tool, not temporary swap)
+        if (appContainer) {
+            appContainer.setAttribute('data-current-tool', toolName);
+        }
+
         // Update UI button states
         toolPanBtn.classList.toggle('active', toolName === 'panZoom');
         toolBrushBtn.classList.toggle('active', toolName === 'maskEdit');
@@ -70,6 +75,7 @@
         // Fix cursor
         wrapper.style.cursor = toolName === 'panZoom' ? 'grab' : 'crosshair';
     }
+
 
     function getPixelPosFromEvent(e) {
         const rect = wrapper.getBoundingClientRect();
