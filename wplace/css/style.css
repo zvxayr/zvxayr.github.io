@@ -100,6 +100,21 @@ body {
     color: #eee;
 }
 
+.settings-section button {
+    background: #4c4c4c;
+    cursor: pointer;
+}
+
+.settings-section button:hover {
+    background: #5c5c5c;
+}
+
+.tool-btn.active {
+    background: #666;
+    border: 2px solid #aaa;
+    color: #fff;
+}
+
 /* Hide all tool sections */
 [data-current-tool] .settings-section[data-tool] {
     display: none;
@@ -108,15 +123,6 @@ body {
 /* Show the one matching the parent's attribute */
 [data-current-tool="maskEdit"] .settings-section[data-tool="maskEdit"] {
     display: unset;
-}
-
-.settings-section button {
-    background: #4c4c4c;
-    cursor: pointer;
-}
-
-.settings-section button:hover {
-    background: #5c5c5c;
 }
 
 .canvas-wrapper {
