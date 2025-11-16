@@ -154,6 +154,12 @@ canvas.pixelated {
     image-rendering: pixelated;
 }
 
+#maskCanvas,
+#brushPreviewCanvas,
+#beforeCanvas {
+    pointer-events: none;
+}
+
 .info {
     font-size: 0.9rem;
     color: #aaa;

@@ -24,9 +24,6 @@
             // Save current tool and switch to pan
             previousTool = activeTool;
             activeTool = tools.panZoom;
-
-            // Make mask overlay non-interactive while space is held
-            maskCanvas.style.pointerEvents = 'none';
             wrapper.style.cursor = 'grab';
 
         }
@@ -44,7 +41,6 @@
 
             // Restore brush/pan UI state
             if (activeTool === tools.maskEdit) {
-                maskCanvas.style.pointerEvents = 'auto';
                 wrapper.style.cursor = 'crosshair';
             } else {
                 wrapper.style.cursor = 'grab';
@@ -67,7 +63,6 @@
 
         // Brush visibility
         const isBrush = toolName === 'maskEdit';
-        maskCanvas.style.pointerEvents = isBrush ? 'auto' : 'none';
         maskCanvas.style.opacity = isBrush ? '0.5' : '0';
 
         brushPreviewCanvas.style.opacity = isBrush ? '1' : '0';
