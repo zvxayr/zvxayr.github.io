@@ -1,6 +1,6 @@
 (function () {
     // ---- Floyd–Steinberg Dithering Core ----
-    function makeDistanceFunction(palette, channelBalance = 0.75, gammaInput = 1.2, chromaWeight = 0.3) {
+    function makeDistanceFunction(palette, rWeight = 0.3, gWeight = 0.59, bWeight = 0.11, gammaInput = 1.2, chromaWeight = 0.3) {
         const f = x => Math.pow(x / 255, gammaInput);
 
         const paletteMeta = palette.map(([r, g, b]) => {
@@ -11,8 +11,6 @@
             return { pl, pChroma, pLightness, isMidGrey };
         });
 
-        const weights = [0.3, 0.59, 0.11].map(w => Math.pow(w, channelBalance));
-
         return function distanceFn(color) {
             const colorLin = color.slice(0, 3).map(f);
             const colorChroma = Math.max(...colorLin) - Math.min(...colorLin);
@@ -22,7 +20,7 @@
 
             for (let i = 0; i < paletteMeta.length; i++) {
                 const p = paletteMeta[i].pl;
-                const dist = weights[0] * (p[0] - colorLin[0]) ** 2 + weights[1] * (p[1] - colorLin[1]) ** 2 + weights[2] * (p[2] - colorLin[2]) ** 2;
+                const dist = rWeight * (p[0] - colorLin[0]) ** 2 + gWeight * (p[1] - colorLin[1]) ** 2 + bWeight * (p[2] - colorLin[2]) ** 2;
                 const greyPenalty = (paletteMeta[i].isMidGrey && colorChroma > 0.1) ? colorChroma * chromaWeight : 0;
                 const adjusted = dist + greyPenalty;
                 if (adjusted < minDist) {
@@ -36,7 +34,7 @@
 
     function floydSteinbergDither(
         data, w, h, prevDithered, palette, freezeMask = null,
-        { ratio = 0.8, errorClip = 255, jitter = 8, channelBalance = 0.75,
+        { ratio = 0.8, errorClip = 255, jitter = 8, rWeight = 0.3, gWeight = 0.59, bWeight = 0.11,
             gammaInput = 1.2, seed = 42, chromaWeight = 0.3, edgeFalloff = 0.5 } = {}
     ) {
         const output = new Uint8ClampedArray(data.length);
@@ -46,7 +44,7 @@
         let rngState = seed >>> 0;
         const rand = () => ((rngState = (1664525 * rngState + 1013904223) >>> 0) / 0x100000000);
 
-        const distanceFn = makeDistanceFunction(palette, channelBalance, gammaInput, chromaWeight);
+        const distanceFn = makeDistanceFunction(palette, rWeight, gWeight, bWeight, gammaInput, chromaWeight);
 
         for (let y = 0; y < h; y++) {
             for (let x = 0; x < w; x++) {
