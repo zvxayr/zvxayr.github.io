@@ -292,6 +292,29 @@
         maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
     });
 
+    // --- Fill Mask Button (set all to 1) ---
+    const fillMaskBtn = document.getElementById('fillMaskBtn');
+    fillMaskBtn.addEventListener('click', () => {
+        if (!freezeMask) return;
+        freezeMask.fill(1);
+
+        // Paint full red overlay on mask canvas
+        const w = maskCanvas.width;
+        const h = maskCanvas.height;
+        const imgData = maskCtx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = 255;     // R
+            data[i + 1] = 0;   // G
+            data[i + 2] = 0;   // B
+            data[i + 3] = 128; // A
+        }
+
+        maskCtx.putImageData(imgData, 0, 0);
+    });
+
+
     // ====================
     // --- Transform Logic ---
     // ====================
