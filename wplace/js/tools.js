@@ -11,7 +11,10 @@ let previousTool = null;
 let spaceHeld = false;
 
 window.addEventListener('keydown', e => {
-    if (e.code === 'Space' && !spaceHeld) {
+    if (e.code !== 'Space') return;
+    console.log(e)
+    e.preventDefault();
+    if (!spaceHeld) {
         spaceHeld = true;
 
         // Save current tool and switch to pan
@@ -21,6 +24,7 @@ window.addEventListener('keydown', e => {
         // Make mask overlay non-interactive while space is held
         maskCanvas.style.pointerEvents = 'none';
         wrapper.style.cursor = 'grab';
+
     }
 });
 
