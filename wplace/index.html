@@ -62,7 +62,7 @@
                 <h2>Dither Settings</h2>
 
                 <fieldset>
-                    <legend>Advanced Dithering Controls</legend>
+                    <legend>Dithering Controls</legend>
                     <div class="advancedControls">
                         <label
                             title="Controls how much color error spreads to neighboring pixels. Set to 1.0 for classic Floyd–Steinberg diffusion, or lower values for a sharper, more pixelated look.">
@@ -93,18 +93,6 @@
                             Error Clip
                             <input type="number" id="errorClipInput" value="128" step="1" min="0" max="512">
                         </label>
-
-                        <label
-                            title="Adds random noise before quantizing each pixel. Small values (0–8) reduce banding; large values create a more film-grain look. Set to 0 for perfectly clean dithering.">
-                            Jitter
-                            <input type="number" id="jitterInput" value="8" step="1" min="0" max="64">
-                        </label>
-
-                        <label
-                            title="Sets the random seed used for Jitter noise. Change this to produce different but repeatable random patterns for the same image.">
-                            Seed
-                            <input type="number" id="seedInput" value="42" step="1" min="0">
-                        </label>
                     </div>
                 </fieldset>
 
@@ -123,7 +111,24 @@
                             B Weight
                             <input type="number" id="balanceB" value="0.11" step="0.01" min="0" max="5">
                         </label>
-                        <button id="setPerceptualBtn">Set Perceptual</button>
+                        <button id="setPerceptualBtn" title="Use perceptual weights">Set Perceptual</button>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Jitter</legend>
+                    <div class="rgb-balance-box">
+                        <label
+                            title="Adds random noise before quantizing each pixel. Small values (0–8) reduce banding; large values create a more film-grain look. Set to 0 for perfectly clean dithering.">
+                            Amount
+                            <input type="number" id="jitterInput" value="8" step="1" min="0" max="64">
+                        </label>
+
+                        <label
+                            title="Sets the random seed used for Jitter noise. Change this to produce different but repeatable random patterns for the same image.">
+                            Seed
+                            <input type="number" id="seedInput" value="42" step="1" min="0">
+                        </label>
                     </div>
                 </fieldset>
             </section>
