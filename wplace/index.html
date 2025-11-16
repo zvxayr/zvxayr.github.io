@@ -8,7 +8,7 @@
 </head>
 
 <body>
-    <div class="app-container">
+    <div class="app-container" data-current-tool>
         <aside class="sidebar">
             <h1>🎨 Dithering</h1>
 
@@ -42,7 +42,7 @@
                 </div>
             </section>
 
-            <section class="settings-section">
+            <section class="settings-section" data-tool="maskEdit">
                 <h2
                     title="Used for touch-ups. Click Edit Mask to 'paint' regions you want fixed. Subsequent edits will leave those pixels untouched. Click the button again to leave mask edit mode. Panning and zooming are disabled in this mode. (WIP)">
                     Freeze Mask</h2>
@@ -54,7 +54,7 @@
 
                 <button id="toggleMaskModeBtn"
                     title="Add mode to set frozen pixels. Subtract mode to unfreeze pixels.">Mode: Add</button>
-                <button id="editMaskBtn">Edit Mask</button>
+                    
                 <button id="clearMaskBtn">Clear Mask</button>
             </section>
 

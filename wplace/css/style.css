@@ -100,6 +100,16 @@ body {
     color: #eee;
 }
 
+/* Hide all tool sections */
+[data-current-tool] .settings-section[data-tool] {
+    display: none;
+}
+
+/* Show the one matching the parent's attribute */
+[data-current-tool="maskEdit"] .settings-section[data-tool="maskEdit"] {
+    display: unset;
+}
+
 .settings-section button {
     background: #4c4c4c;
     cursor: pointer;

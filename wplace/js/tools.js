@@ -285,18 +285,7 @@
     });
 
     // --- Mask Edit Controls ---
-    const editMaskBtn = document.getElementById('editMaskBtn');
     const clearMaskBtn = document.getElementById('clearMaskBtn');
-
-    editMaskBtn.addEventListener('click', () => {
-        const editing = activeTool !== tools.maskEdit;
-        activeTool = editing ? tools.maskEdit : tools.panZoom;
-        maskCanvas.style.pointerEvents = editing ? 'auto' : 'none';
-        maskCanvas.style.opacity = editing ? '0.5' : '0';
-        editMaskBtn.textContent = editing ? 'Exit Mask Edit' : 'Edit Mask';
-        brushPreviewCanvas.style.opacity = editing ? '1' : '0';
-    });
-
     clearMaskBtn.addEventListener('click', () => {
         if (!freezeMask) return;
         freezeMask.fill(0);
