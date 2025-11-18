@@ -354,7 +354,7 @@
                 }, 100);
             }
 
-            [interpolation, ratioInput, jitterInput, gammaInput, balanceR, balanceG, balanceB, seedInput, greyPenaltyInput, edgeFalloffInput, errorClipInput, transparencyInput]
+            [interpolation, ratioInput, frozenRatioInput, jitterInput, gammaInput, balanceR, balanceG, balanceB, seedInput, greyPenaltyInput, edgeFalloffInput, errorClipInput, transparencyInput]
                 .forEach(el => el.addEventListener('input', queueProcess));
 
             scaleInput.addEventListener('input', () => {
@@ -452,7 +452,7 @@
                 downloadBtn.disabled = false;
                 infoText.textContent =
                     `Original: ${lastImage.width}×${lastImage.height} → Dithered: ${w}×${h} (${interp}), ` +
-                    `ratio=${ratio}, jitter=${jitter}, gamma=${gamma}, balance=${balance}, seed=${seed}, active colors=${activePalette.length}`;
+                    `ratio=${ratio}, jitter=${jitter}, gamma=${gamma}, seed=${seed}, active colors=${activePalette.length}`;
 
             }
 
